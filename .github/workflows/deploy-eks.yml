@@ -79,7 +79,12 @@ jobs:
       - name: Update kubeconfig
         run: |
           if [ -n "$EKS_KUBECTL_ROLE_ARN" ]; then
-            aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION" --role-arn "$EKS_KUBECTL_ROLE_ARN"
+            if aws sts assume-role --role-arn "$EKS_KUBECTL_ROLE_ARN" --role-session-name "gha-eks-check" --duration-seconds 900 >/dev/null 2>&1; then
+              aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION" --role-arn "$EKS_KUBECTL_ROLE_ARN"
+            else
+              echo "Could not assume EKS_KUBECTL_ROLE_ARN. Falling back to base AWS identity."
+              aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
+            fi
           else
             aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
           fi
@@ -94,13 +99,19 @@ jobs:
         run: |
           NAMESPACE="default"
           if [ -n "$EKS_KUBECTL_ROLE_ARN" ]; then
-            aws eks get-token --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" --role-arn "$EKS_KUBECTL_ROLE_ARN" >/dev/null
+            if aws sts assume-role --role-arn "$EKS_KUBECTL_ROLE_ARN" --role-session-name "gha-eks-token-check" --duration-seconds 900 >/dev/null 2>&1; then
+              aws eks get-token --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" --role-arn "$EKS_KUBECTL_ROLE_ARN" >/dev/null
+            else
+              echo "Could not assume EKS_KUBECTL_ROLE_ARN. Continuing with base AWS identity token."
+              aws eks get-token --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" >/dev/null
+            fi
           else
             aws eks get-token --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" >/dev/null
           fi
           kubectl auth can-i get pods -n "$NAMESPACE" || {
             echo "Authenticated to AWS, but not authorized in EKS Kubernetes RBAC."
             echo "Grant the exact principal from 'Debug caller identity' EKS access entry or aws-auth mapping."
+            echo "If you want to use EKS_KUBECTL_ROLE_ARN, allow sts:AssumeRole to that role for the access key principal."
             exit 1
           }
 
