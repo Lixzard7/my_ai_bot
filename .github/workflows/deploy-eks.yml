@@ -93,12 +93,23 @@ jobs:
             aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
           fi
 
+      - name: Debug caller identity
+        run: |
+          echo "AWS identity used by workflow:"
+          aws sts get-caller-identity
+          echo "EKS_KUBECTL_ROLE_ARN=${EKS_KUBECTL_ROLE_ARN:-<empty>}"
+
       - name: Verify cluster access
         run: |
           NAMESPACE="${K8S_NAMESPACE:-default}"
+          if [ -n "$EKS_KUBECTL_ROLE_ARN" ]; then
+            aws eks get-token --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" --role-arn "$EKS_KUBECTL_ROLE_ARN" >/dev/null
+          else
+            aws eks get-token --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" >/dev/null
+          fi
           kubectl auth can-i get pods -n "$NAMESPACE" || {
             echo "Authenticated to AWS, but not authorized in EKS Kubernetes RBAC."
-            echo "Grant this IAM principal EKS access entry or aws-auth mapping with required permissions."
+            echo "Grant the exact principal from 'Debug caller identity' EKS access entry or aws-auth mapping."
             exit 1
           }
 
