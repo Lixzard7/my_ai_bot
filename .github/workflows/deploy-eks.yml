@@ -24,11 +24,42 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Configure AWS credentials
+      - name: Validate required configuration
+        run: |
+          set -e
+          if [ -z "${AWS_REGION}" ]; then
+            echo "Missing secret: AWS_REGION"
+            exit 1
+          fi
+          if [ -z "${ECR_REPOSITORY}" ]; then
+            echo "Missing secret: ECR_REPOSITORY"
+            exit 1
+          fi
+          if [ -z "${EKS_CLUSTER_NAME}" ]; then
+            echo "Missing secret: EKS_CLUSTER_NAME"
+            exit 1
+          fi
+
+      - name: Configure AWS credentials (OIDC)
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ secrets.AWS_ROLE_TO_ASSUME }}
           aws-region: ${{ env.AWS_REGION }}
+
+      - name: Configure AWS credentials (Access Key)
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME == '' && secrets.AWS_ACCESS_KEY_ID != '' && secrets.AWS_SECRET_ACCESS_KEY != '' }}
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Ensure AWS auth method configured
+        if: ${{ secrets.AWS_ROLE_TO_ASSUME == '' && (secrets.AWS_ACCESS_KEY_ID == '' || secrets.AWS_SECRET_ACCESS_KEY == '') }}
+        run: |
+          echo "Set either AWS_ROLE_TO_ASSUME (OIDC) or both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY."
+          exit 1
 
       - name: Log in to Amazon ECR
         id: login-ecr
