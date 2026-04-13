@@ -18,8 +18,11 @@ jobs:
       AWS_REGION: ${{ secrets.AWS_REGION }}
       ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
       CLUSTER_NAME: ${{ secrets.CLUSTER_NAME }}
+      K8S_NAMESPACE: ${{ secrets.K8S_NAMESPACE }}
+      AWS_ROLE_TO_ASSUME: ${{ secrets.AWS_ROLE_TO_ASSUME }}
       AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
       AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+      EKS_KUBECTL_ROLE_ARN: ${{ secrets.EKS_KUBECTL_ROLE_ARN }}
 
 
     steps:
@@ -83,7 +86,21 @@ jobs:
           version: latest
 
       - name: Update kubeconfig
-        run: aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
+        run: |
+          if [ -n "$EKS_KUBECTL_ROLE_ARN" ]; then
+            aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION" --role-arn "$EKS_KUBECTL_ROLE_ARN"
+          else
+            aws eks update-kubeconfig --name "$CLUSTER_NAME" --region "$AWS_REGION"
+          fi
+
+      - name: Verify cluster access
+        run: |
+          NAMESPACE="${K8S_NAMESPACE:-default}"
+          kubectl auth can-i get pods -n "$NAMESPACE" || {
+            echo "Authenticated to AWS, but not authorized in EKS Kubernetes RBAC."
+            echo "Grant this IAM principal EKS access entry or aws-auth mapping with required permissions."
+            exit 1
+          }
 
       - name: Deploy to EKS
         run: |

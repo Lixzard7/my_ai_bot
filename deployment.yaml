@@ -12,6 +12,7 @@ spec:
       labels:
         app: chatbot
     spec:
+
       containers:
       - name: chatbot
         image: 292600391924.dkr.ecr.ap-south-1.amazonaws.com/sarthakbotecr:latest
