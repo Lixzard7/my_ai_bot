@@ -8,7 +8,6 @@ on:
   workflow_dispatch:
 
 permissions:
-  id-token: write
   contents: read
 
 jobs:
@@ -42,27 +41,21 @@ jobs:
             echo "Missing secret: CLUSTER_NAME"
             exit 1
           fi
-
-      - name: Configure AWS credentials (OIDC)
-        if: ${{ env.AWS_ROLE_TO_ASSUME != '' }}
-        uses: aws-actions/configure-aws-credentials@v4
-        with:
-          role-to-assume: ${{ env.AWS_ROLE_TO_ASSUME }}
-          aws-region: ${{ env.AWS_REGION }}
+          if [ -z "${AWS_ACCESS_KEY_ID}" ]; then
+            echo "Missing secret: AWS_ACCESS_KEY_ID"
+            exit 1
+          fi
+          if [ -z "${AWS_SECRET_ACCESS_KEY}" ]; then
+            echo "Missing secret: AWS_SECRET_ACCESS_KEY"
+            exit 1
+          fi
 
       - name: Configure AWS credentials (Access Key)
-        if: ${{ env.AWS_ROLE_TO_ASSUME == '' && env.AWS_ACCESS_KEY_ID != '' && env.AWS_SECRET_ACCESS_KEY != '' }}
         uses: aws-actions/configure-aws-credentials@v4
         with:
           aws-access-key-id: ${{ env.AWS_ACCESS_KEY_ID }}
           aws-secret-access-key: ${{ env.AWS_SECRET_ACCESS_KEY }}
           aws-region: ${{ env.AWS_REGION }}
-
-      - name: Ensure AWS auth method configured
-        if: ${{ env.AWS_ROLE_TO_ASSUME == '' && (env.AWS_ACCESS_KEY_ID == '' || env.AWS_SECRET_ACCESS_KEY == '') }}
-        run: |
-          echo "Set either AWS_ROLE_TO_ASSUME (OIDC) or both AWS_ACCESS_KEY_ID and AWS_SECRET_ACCESS_KEY."
-          exit 1
 
       - name: Log in to Amazon ECR
         id: login-ecr
@@ -99,7 +92,7 @@ jobs:
 
       - name: Verify cluster access
         run: |
-          NAMESPACE="${K8S_NAMESPACE:-default}"
+          NAMESPACE="default"
           if [ -n "$EKS_KUBECTL_ROLE_ARN" ]; then
             aws eks get-token --cluster-name "$CLUSTER_NAME" --region "$AWS_REGION" --role-arn "$EKS_KUBECTL_ROLE_ARN" >/dev/null
           else
@@ -113,7 +106,7 @@ jobs:
 
       - name: Deploy to EKS
         run: |
-          NAMESPACE="${K8S_NAMESPACE:-default}"
+          NAMESPACE="default"
           kubectl apply -f deployment.yaml -n "$NAMESPACE"
           kubectl apply -f servicefile.yaml -n "$NAMESPACE"
           kubectl set image deployment/chatbot chatbot="$IMAGE_URI" -n "$NAMESPACE"
