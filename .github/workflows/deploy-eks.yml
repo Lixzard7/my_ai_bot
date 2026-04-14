@@ -120,5 +120,5 @@ jobs:
           NAMESPACE="default"
           kubectl apply -f deployment.yaml -n "$NAMESPACE"
           kubectl apply -f servicefile.yaml -n "$NAMESPACE"
-          kubectl rollout restart deployment/chatbot -n "$NAMESPACE"
+          kubectl set image deployment/chatbot chatbot="$IMAGE_URI" -n "$NAMESPACE"
           kubectl rollout status deployment/chatbot -n "$NAMESPACE" --timeout=180s
