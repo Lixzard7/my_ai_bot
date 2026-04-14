@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Chatbot</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #08111f;
+      --panel: rgba(13, 22, 40, 0.82);
+      --panel-strong: #101b31;
+      --border: rgba(148, 163, 184, 0.18);
+      --text: #e5eefc;
+      --muted: #8ea2c6;
+      --accent: #38bdf8;
+      --accent-2: #22c55e;
+      --user: linear-gradient(135deg, #2563eb, #0ea5e9);
+      --bot: #13213d;
+      --shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+      --radius: 22px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at top left, rgba(56, 189, 248, 0.18), transparent 35%),
+        radial-gradient(circle at bottom right, rgba(34, 197, 94, 0.12), transparent 30%),
+        linear-gradient(180deg, #050b16 0%, #09111f 100%);
+      color: var(--text);
+      display: grid;
+      place-items: center;
+      padding: 24px;
+    }
+
+    .shell {
+      width: min(1080px, 100%);
+      min-height: min(92vh, 980px);
+      display: grid;
+      grid-template-rows: auto 1fr auto;
+      gap: 18px;
+      padding: 24px;
+      border: 1px solid var(--border);
+      border-radius: 30px;
+      background: var(--panel);
+      backdrop-filter: blur(20px);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 8px 4px 6px;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .logo {
+      width: 52px;
+      height: 52px;
+      border-radius: 16px;
+      background: linear-gradient(135deg, #38bdf8, #22c55e);
+      box-shadow: 0 12px 30px rgba(56, 189, 248, 0.35);
+      display: grid;
+      place-items: center;
+      font-weight: 800;
+      color: #06111f;
+      letter-spacing: 0.08em;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: clamp(1.25rem, 2.5vw, 1.75rem);
+      line-height: 1.1;
+    }
+
+    .subtitle {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.95rem;
+    }
+
+    .status {
+      padding: 10px 14px;
+      border-radius: 999px;
+      border: 1px solid rgba(34, 197, 94, 0.25);
+      background: rgba(34, 197, 94, 0.1);
+      color: #b8f7d1;
+      font-size: 0.92rem;
+      white-space: nowrap;
+    }
+
+    .chat {
+      display: flex;
+      flex-direction: column;
+      gap: 14px;
+      padding: 10px 4px 0;
+      overflow-y: auto;
+      scroll-behavior: smooth;
+    }
+
+    .message {
+      display: flex;
+      gap: 12px;
+      align-items: flex-end;
+      animation: rise 220ms ease-out;
+    }
+
+    .message.user {
+      justify-content: flex-end;
+    }
+
+    .bubble {
+      max-width: min(720px, 88%);
+      padding: 14px 16px;
+      border-radius: 20px;
+      border: 1px solid var(--border);
+      line-height: 1.55;
+      white-space: pre-wrap;
+      word-break: break-word;
+      box-shadow: 0 10px 28px rgba(0, 0, 0, 0.18);
+    }
+
+    .user .bubble {
+      background: var(--user);
+      color: white;
+      border-bottom-right-radius: 8px;
+    }
+
+    .bot .bubble {
+      background: var(--bot);
+      border-bottom-left-radius: 8px;
+    }
+
+    .meta {
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin: 0 6px 2px;
+    }
+
+    .composer {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 12px;
+      border: 1px solid var(--border);
+      background: rgba(8, 16, 31, 0.72);
+      border-radius: 22px;
+    }
+
+    textarea {
+      width: 100%;
+      resize: none;
+      border: 0;
+      outline: none;
+      background: transparent;
+      color: var(--text);
+      font: inherit;
+      line-height: 1.5;
+      min-height: 54px;
+      max-height: 160px;
+      padding: 14px 14px 14px 16px;
+    }
+
+    textarea::placeholder {
+      color: #64789f;
+    }
+
+    button {
+      border: 0;
+      border-radius: 18px;
+      padding: 0 18px;
+      min-width: 124px;
+      background: linear-gradient(135deg, #0ea5e9, #22c55e);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+      transition: transform 150ms ease, filter 150ms ease, opacity 150ms ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+    }
+
+    button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
+
+    .hint {
+      color: var(--muted);
+      font-size: 0.9rem;
+      padding: 0 2px 2px;
+    }
+
+    .typing {
+      display: inline-flex;
+      gap: 5px;
+      align-items: center;
+    }
+
+    .typing span {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: #93c5fd;
+      animation: bounce 1s infinite ease-in-out;
+    }
+
+    .typing span:nth-child(2) { animation-delay: 0.15s; }
+    .typing span:nth-child(3) { animation-delay: 0.3s; }
+
+    @keyframes rise {
+      from {
+        opacity: 0;
+        transform: translateY(8px);
+      }
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    @keyframes bounce {
+      0%, 80%, 100% { transform: translateY(0); opacity: 0.45; }
+      40% { transform: translateY(-5px); opacity: 1; }
+    }
+
+    @media (max-width: 720px) {
+      body {
+        padding: 0;
+      }
+
+      .shell {
+        min-height: 100vh;
+        border-radius: 0;
+        border-left: 0;
+        border-right: 0;
+        padding: 18px;
+      }
+
+      header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .composer {
+        grid-template-columns: 1fr;
+      }
+
+      button {
+        min-height: 48px;
+      }
+
+      .bubble {
+        max-width: 94%;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header>
+      <div class="brand">
+        <div class="logo">AI</div>
+        <div>
+          <h1>My AI Chatbot</h1>
+          <div class="subtitle">A clean frontend on top of your FastAPI + Gemini bot</div>
+        </div>
+      </div>
+      <div class="status">Online</div>
+    </header>
+
+    <section id="chat" class="chat" aria-live="polite"></section>
+
+    <div>
+      <div class="hint">Press Enter to send. Use Shift+Enter for a new line.</div>
+      <form id="composer" class="composer">
+        <textarea id="prompt" placeholder="Ask me anything..." rows="1"></textarea>
+        <button id="sendBtn" type="submit">Send</button>
+      </form>
+    </div>
+  </main>
+
+  <script>
+    const chat = document.getElementById('chat');
+    const composer = document.getElementById('composer');
+    const promptInput = document.getElementById('prompt');
+    const sendBtn = document.getElementById('sendBtn');
+
+    function scrollToBottom() {
+      chat.scrollTop = chat.scrollHeight;
+    }
+
+    function addMessage(text, role = 'bot') {
+      const row = document.createElement('div');
+      row.className = `message ${role}`;
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.textContent = text;
+
+      row.appendChild(bubble);
+      chat.appendChild(row);
+      scrollToBottom();
+      return bubble;
+    }
+
+    function addTyping() {
+      const row = document.createElement('div');
+      row.className = 'message bot';
+
+      const bubble = document.createElement('div');
+      bubble.className = 'bubble';
+      bubble.innerHTML = '<span class="typing"><span></span><span></span><span></span></span>';
+
+      row.appendChild(bubble);
+      chat.appendChild(row);
+      scrollToBottom();
+      return row;
+    }
+
+    addMessage('Hello! I am ready. Ask me anything and I will respond here.', 'bot');
+
+    async function sendPrompt(prompt) {
+      const typingRow = addTyping();
+      sendBtn.disabled = true;
+      promptInput.disabled = true;
+
+      try {
+        const response = await fetch('/api/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt })
+        });
+
+        const data = await response.json();
+        typingRow.remove();
+
+        if (!response.ok) {
+          addMessage(data.detail || data.error || 'Something went wrong.', 'bot');
+          return;
+        }
+
+        addMessage(data.response || 'No response returned.', 'bot');
+      } catch (error) {
+        typingRow.remove();
+        addMessage(`Request failed: ${error.message}`, 'bot');
+      } finally {
+        sendBtn.disabled = false;
+        promptInput.disabled = false;
+        promptInput.focus();
+      }
+    }
+
+    composer.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      const prompt = promptInput.value.trim();
+      if (!prompt) {
+        return;
+      }
+
+      addMessage(prompt, 'user');
+      promptInput.value = '';
+      promptInput.style.height = 'auto';
+      await sendPrompt(prompt);
+    });
+
+    promptInput.addEventListener('input', () => {
+      promptInput.style.height = 'auto';
+      promptInput.style.height = `${Math.min(promptInput.scrollHeight, 160)}px`;
+    });
+
+    promptInput.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter' && !event.shiftKey) {
+        event.preventDefault();
+        composer.requestSubmit();
+      }
+    });
+  </script>
+</body>
+</html>

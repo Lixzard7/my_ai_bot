@@ -1,8 +1,12 @@
-from fastapi import FastAPI
+from fastapi import FastAPI, HTTPException
+from fastapi.responses import HTMLResponse
+from pydantic import BaseModel
 import google.generativeai as genai
 import os
+from pathlib import Path
 
 app = FastAPI()
+frontend_path = Path(__file__).parent / "frontend" / "index.html"
 
 
 def get_model():
@@ -14,10 +18,27 @@ def get_model():
 
 
 model = get_model()
+
+
+class ChatRequest(BaseModel):
+    prompt: str
  
 @app.get("/")
 def home():
-    return {"message": "Chatbot is running"}
+    return HTMLResponse(frontend_path.read_text(encoding="utf-8"))
+
+
+@app.post("/api/chat")
+async def chat_api(request: ChatRequest):
+    prompt = request.prompt.strip()
+    if not prompt:
+        raise HTTPException(status_code=400, detail="Prompt cannot be empty")
+
+    try:
+        response = model.generate_content(prompt)
+        return {"response": response.text}
+    except Exception as e:
+        return {"error": str(e)}
 
 
 @app.post("/chat/{prompt}")
