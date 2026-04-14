@@ -8,7 +8,7 @@ app = FastAPI()
 # Replace with your API key
 genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 model = genai.GenerativeModel("gemini-2.5-flash-lite")
-
+ 
 @app.get("/")
 def home():
     return {"message": "Chatbot is running"}
