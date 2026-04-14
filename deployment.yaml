@@ -18,3 +18,9 @@ spec:
         image: 292600391924.dkr.ecr.ap-south-1.amazonaws.com/sarthakbotecr:latest
         ports:
         - containerPort: 8000
+  env:
+  - name: GEMINI_API_KEY
+    valueFrom:
+      secretKeyRef:
+        name: gemini-secret
+        key: GEMINI_API_KEY      
