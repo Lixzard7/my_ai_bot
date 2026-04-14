@@ -8,7 +8,7 @@ from typing import Dict, List
 
 app = FastAPI(docs_url=None, redoc_url=None)
 frontend_path = Path(__file__).parent / "frontend" / "index.html"
-MAX_TURNS = 15
+MAX_TURNS = 
 chat_sessions: Dict[str, List[dict]] = {}
 
 
@@ -41,6 +41,23 @@ def build_context_prompt(history: List[dict], current_prompt: str) -> str:
     lines.append(f"User: {current_prompt}")
     lines.append("Assistant:")
     return "\n".join(lines)
+
+
+def extract_response_text(response) -> str:
+    text = (getattr(response, "text", "") or "").strip()
+    if text:
+        return text
+
+    candidates = getattr(response, "candidates", None) or []
+    for candidate in candidates:
+        content = getattr(candidate, "content", None)
+        parts = getattr(content, "parts", None) or []
+        for part in parts:
+            part_text = (getattr(part, "text", "") or "").strip()
+            if part_text:
+                return part_text
+
+    return ""
  
 @app.get("/")
 def home():
@@ -66,11 +83,18 @@ async def chat_api(request: ChatRequest):
 
     try:
         response = model.generate_content(context_prompt)
-        answer = response.text
+        answer = extract_response_text(response)
+        if not answer:
+            raise HTTPException(
+                status_code=502,
+                detail="Model returned an empty response. Please retry your message."
+            )
         history.append({"user": prompt, "assistant": answer})
         if len(history) > MAX_TURNS:
             del history[:-MAX_TURNS]
         return {"response": answer}
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
 
@@ -79,6 +103,14 @@ async def chat_api(request: ChatRequest):
 async def chat(prompt: str):
     try:
         response = model.generate_content(prompt)
-        return {"response": response.text}
+        answer = extract_response_text(response)
+        if not answer:
+            raise HTTPException(
+                status_code=502,
+                detail="Model returned an empty response. Please retry your message."
+            )
+        return {"response": answer}
+    except HTTPException:
+        raise
     except Exception as e:
         return {"error": str(e)}
