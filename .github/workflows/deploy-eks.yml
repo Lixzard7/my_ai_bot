@@ -117,8 +117,17 @@ jobs:
 
       - name: Deploy to EKS
         run: |
+          set -e
           NAMESPACE="default"
           kubectl apply -f deployment.yaml -n "$NAMESPACE"
           kubectl apply -f servicefile.yaml -n "$NAMESPACE"
           kubectl set image deployment/chatbot chatbot="$IMAGE_URI" -n "$NAMESPACE"
-          kubectl rollout status deployment/chatbot -n "$NAMESPACE" --timeout=300s
+          if ! kubectl rollout status deployment/chatbot -n "$NAMESPACE" --timeout=600s; then
+            echo "Rollout did not complete within timeout. Collecting diagnostics..."
+            kubectl get deployment chatbot -n "$NAMESPACE" -o wide || true
+            kubectl get rs -l app=chatbot -n "$NAMESPACE" || true
+            kubectl get pods -l app=chatbot -n "$NAMESPACE" -o wide || true
+            kubectl describe deployment chatbot -n "$NAMESPACE" | tail -n 120 || true
+            kubectl logs -l app=chatbot -n "$NAMESPACE" --tail=120 --all-containers=true || true
+            exit 1
+          fi
