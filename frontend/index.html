@@ -208,6 +208,24 @@
       padding: 0 2px 2px;
     }
 
+    .hint-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+      margin-bottom: 2px;
+    }
+
+    .clear-btn {
+      min-width: auto;
+      padding: 8px 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      background: #1e293b;
+      border: 1px solid var(--border);
+      color: #c9d8f5;
+    }
+
     .typing {
       display: inline-flex;
       gap: 5px;
@@ -289,7 +307,10 @@
     <section id="chat" class="chat" aria-live="polite"></section>
 
     <div>
-      <div class="hint">Press Enter to send. Use Shift+Enter for a new line.</div>
+      <div class="hint-row">
+        <div class="hint">Press Enter to send. Use Shift+Enter for a new line.</div>
+        <button id="clearBtn" class="clear-btn" type="button">New Chat</button>
+      </div>
       <form id="composer" class="composer">
         <textarea id="prompt" placeholder="Ask me anything..." rows="1"></textarea>
         <button id="sendBtn" type="submit">Send</button>
@@ -302,6 +323,24 @@
     const composer = document.getElementById('composer');
     const promptInput = document.getElementById('prompt');
     const sendBtn = document.getElementById('sendBtn');
+    const clearBtn = document.getElementById('clearBtn');
+    const SESSION_KEY = 'chatbot_session_id';
+
+    function createSessionId() {
+      return `${Date.now()}-${Math.random().toString(36).slice(2, 12)}`;
+    }
+
+    function getSessionId() {
+      const existing = localStorage.getItem(SESSION_KEY);
+      if (existing) {
+        return existing;
+      }
+      const next = createSessionId();
+      localStorage.setItem(SESSION_KEY, next);
+      return next;
+    }
+
+    let sessionId = getSessionId();
 
     function scrollToBottom() {
       chat.scrollTop = chat.scrollHeight;
@@ -346,7 +385,7 @@
         const response = await fetch('/api/chat', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ prompt })
+          body: JSON.stringify({ prompt, session_id: sessionId })
         });
 
         const data = await response.json();
@@ -391,6 +430,14 @@
         event.preventDefault();
         composer.requestSubmit();
       }
+    });
+
+    clearBtn.addEventListener('click', () => {
+      sessionId = createSessionId();
+      localStorage.setItem(SESSION_KEY, sessionId);
+      chat.innerHTML = '';
+      addMessage('Started a new conversation. Ask your next question.', 'bot');
+      promptInput.focus();
     });
   </script>
 </body>
