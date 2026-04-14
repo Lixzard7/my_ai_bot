@@ -8,7 +8,7 @@ from typing import Dict, List
 
 app = FastAPI(docs_url=None, redoc_url=None)
 frontend_path = Path(__file__).parent / "frontend" / "index.html"
-MAX_TURNS = 
+MAX_TURNS = 6
 chat_sessions: Dict[str, List[dict]] = {}
 
 
