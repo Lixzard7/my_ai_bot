@@ -1,11 +1,11 @@
 from fastapi import FastAPI, HTTPException
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, RedirectResponse
 from pydantic import BaseModel
 import google.generativeai as genai
 import os
 from pathlib import Path
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None)
 frontend_path = Path(__file__).parent / "frontend" / "index.html"
 
 
@@ -26,6 +26,11 @@ class ChatRequest(BaseModel):
 @app.get("/")
 def home():
     return HTMLResponse(frontend_path.read_text(encoding="utf-8"))
+
+
+@app.get("/docs")
+def docs_redirect():
+    return RedirectResponse(url="/", status_code=307)
 
 
 @app.post("/api/chat")
