@@ -396,6 +396,11 @@
           return;
         }
 
+        if (data.error) {
+          addMessage(data.error, 'bot');
+          return;
+        }
+
         addMessage(data.response || 'No response returned.', 'bot');
       } catch (error) {
         typingRow.remove();

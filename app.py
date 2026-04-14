@@ -96,7 +96,7 @@ async def chat_api(request: ChatRequest):
     except HTTPException:
         raise
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Chat generation failed: {str(e)}")
 
 
 @app.post("/chat/{prompt}")
@@ -113,4 +113,4 @@ async def chat(prompt: str):
     except HTTPException:
         raise
     except Exception as e:
-        return {"error": str(e)}
+        raise HTTPException(status_code=500, detail=f"Chat generation failed: {str(e)}")
