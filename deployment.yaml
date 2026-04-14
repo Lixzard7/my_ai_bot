@@ -16,6 +16,7 @@ spec:
       containers:
       - name: chatbot
         image: 292600391924.dkr.ecr.ap-south-1.amazonaws.com/sarthakbotecr:latest
+        imagePullPolicy: Always
         ports:
         - containerPort: 8000
         env:
@@ -23,4 +24,16 @@ spec:
            valueFrom:
              secretKeyRef:
                name: gemini-secret
-               key: GEMINI_API_KEY      
+               key: GEMINI_API_KEY
+        readinessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10      
