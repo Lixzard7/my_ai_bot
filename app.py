@@ -1,16 +1,19 @@
 from fastapi import FastAPI
-from pydantic import BaseModel
 import google.generativeai as genai
 import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 app = FastAPI()
-api_key=os.getenv("GEMINI_API_KEY")# Replace with your API key
-print("API Key:", api_key)  # Debugging line to check if the API key is being read correctly
-genai.configure(api_key=api_key)
-model = genai.GenerativeModel("gemini-2.5-flash-lite")
+
+
+def get_model():
+    api_key = os.getenv("GEMINI_API_KEY")
+    if not api_key:
+        raise RuntimeError("GEMINI_API_KEY is not set")
+    genai.configure(api_key=api_key)
+    return genai.GenerativeModel("gemini-2.5-flash-lite")
+
+
+model = get_model()
  
 @app.get("/")
 def home():
